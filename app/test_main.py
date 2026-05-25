@@ -67,3 +67,28 @@ def test_health_unaffected_by_fault_injection():
     client = make_client({"FORCE_NOT_READY": "true"})
     res = client.get("/health")
     assert res.status_code == 200
+
+
+# --- Prometheus metrics ---
+
+def test_metrics_endpoint_exists():
+    """Prometheus가 scraping할 /metrics 엔드포인트가 존재해야 함"""
+    client = make_client()
+    res = client.get("/metrics")
+    assert res.status_code == 200
+
+
+def test_metrics_content_type():
+    """/metrics 응답은 Prometheus text format 이어야 함"""
+    client = make_client()
+    res = client.get("/metrics")
+    assert "text/plain" in res.headers["content-type"]
+
+
+def test_metrics_records_http_requests():
+    """엔드포인트 호출 후 /metrics 에 http_requests 카운터가 기록되어야 함"""
+    client = make_client()
+    client.get("/health")
+    client.get("/ready")
+    res = client.get("/metrics")
+    assert "http_requests_total" in res.text

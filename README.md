@@ -169,7 +169,7 @@ kubectl apply -f k8s/service.yaml --dry-run=client
 - [x] FastAPI app with health/ready/info endpoints
 - [x] Kubernetes deployment with probes
 - [x] CI pipeline (pytest + docker build + dry-run)
-- [ ] Prometheus metrics (`/metrics` endpoint)
+- [x] Prometheus metrics (`/metrics` endpoint)
 - [ ] Grafana + Loki stack via docker-compose
 - [ ] Faulty release simulation (v2 with broken readiness)
 - [ ] Rollback timing measurement
