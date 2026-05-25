@@ -27,9 +27,13 @@ spec:
             - containerPort: 8000
           env:
             - name: APP_VERSION
-              value: "1.0.0"
+              value: "2.0.0"
             - name: APP_ENV
               value: "production"
+            - name: FORCE_NOT_READY
+              value: "true"
+            - name: SLOW_READY_MS
+              value: "0"
           readinessProbe:
             httpGet:
               path: /ready

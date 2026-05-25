@@ -35,18 +35,17 @@ jobs:
       - name: Docker 이미지 빌드 (push 없음)
         run: docker build -t rollback-lab:${{ github.sha }} .
 
-  k8s-dry-run:
-    name: kubectl dry-run
+  k8s-manifest-validate:
+    name: k8s manifest 검증
     runs-on: ubuntu-latest
     needs: test
     steps:
       - uses: actions/checkout@v4
 
-      - name: kubectl 설치
-        uses: azure/setup-kubectl@v4
+      - name: kubeconform 설치
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz \
+            | tar xz -C /usr/local/bin
 
-      - name: Deployment dry-run
-        run: kubectl apply -f k8s/deployment.yaml --dry-run=client
-
-      - name: Service dry-run
-        run: kubectl apply -f k8s/service.yaml --dry-run=client
+      - name: manifest 검증 (클러스터 불필요)
+        run: kubeconform -strict -summary k8s/deployment.yaml k8s/service.yaml
