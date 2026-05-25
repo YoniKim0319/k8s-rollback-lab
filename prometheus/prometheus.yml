@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 5s      # 5초마다 /metrics 긁어감
+
+scrape_configs:
+  - job_name: rollback-lab
+    static_configs:
+      - targets:
+          - app:8000        # docker-compose 서비스명:포트
