@@ -170,7 +170,7 @@ kubectl apply -f k8s/service.yaml --dry-run=client
 - [x] Kubernetes deployment with probes
 - [x] CI pipeline (pytest + docker build + dry-run)
 - [x] Prometheus metrics (`/metrics` endpoint)
-- [ ] Grafana + Loki stack via docker-compose
+- [x] Grafana + Prometheus stack via docker-compose
 - [ ] Faulty release simulation (v2 with broken readiness)
 - [ ] Rollback timing measurement
 - [ ] Minikube-based full end-to-end run
