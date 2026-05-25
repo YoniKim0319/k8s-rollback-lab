@@ -45,6 +45,18 @@ jobs:
       - name: kubectl 설치
         uses: azure/setup-kubectl@v4
 
+      - name: 더미 kubeconfig 생성
+        run: |
+          mkdir -p ~/.kube
+          cat <<EOF > ~/.kube/config
+          apiVersion: v1
+          kind: Config
+          clusters: []
+          users: []
+          contexts: []
+          current-context: ""
+          EOF
+
       - name: Deployment dry-run
         run: kubectl apply -f k8s/deployment.yaml --dry-run=client
 
