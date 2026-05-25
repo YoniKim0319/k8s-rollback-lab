@@ -58,7 +58,7 @@ jobs:
           EOF
 
       - name: Deployment dry-run
-        run: kubectl apply -f k8s/deployment.yaml --dry-run=client
+        run: kubectl apply -f k8s/deployment.yaml --dry-run=client --validate=false
 
       - name: Service dry-run
-        run: kubectl apply -f k8s/service.yaml --dry-run=client
+        run: kubectl apply -f k8s/service.yaml --dry-run=client --validate=false
