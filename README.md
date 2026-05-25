@@ -111,9 +111,11 @@ livenessProbe:    # Controls container restart
   failureThreshold: 3   # 3 failures → Pod restarted
 ```
 
-In an automotive context, this maps to:
-- `readinessProbe` → software maturity gate before routing real sensor data
-- `livenessProbe` → watchdog / health monitor triggering ECU reset
+> **Note:** This project does not handle real sensor data. The analogies below are **conceptual** — intended to map cloud-native patterns to automotive equivalents, not to claim functional equivalence.
+
+Conceptual parallel to automotive/ADAS:
+- `readinessProbe` → software maturity gate (analogous to a pre-routing validation before a component receives live data)
+- `livenessProbe` → watchdog / health monitor (analogous to ECU-level reset trigger on unresponsive process)
 
 ---
 
