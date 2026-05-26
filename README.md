@@ -145,16 +145,55 @@ Conceptual parallel to automotive/ADAS:
 
 ---
 
-## CI Pipeline
+## CI/CD Pipeline
+
+### Role Separation
+
+| Layer | Tool | Responsibility |
+|-------|------|----------------|
+| CI | GitHub Actions | Code quality gate (test, build, manifest validation) |
+| CD | ArgoCD (GitOps) | Automated cluster deployment & Self-Healing |
+
+### CI (GitHub Actions)
 
 ```
 push / PR
-  └─ pytest               ← gates everything downstream
-       ├─ Docker build     (local only, no push)
-       └─ kubectl dry-run  (--dry-run=client, no cluster needed)
+  └─ pytest                    ← blocks everything downstream on failure
+       ├─ Docker build          (local only, no push)
+       └─ k8s manifest validate (kubeconform, no cluster needed)
 ```
 
-The pipeline is intentionally minimal — the focus is on the **deployment reliability concepts**, not CI tooling complexity.
+### CD (ArgoCD)
+
+```
+main branch updated
+  └─ ArgoCD watches k8s/ directory
+       ├─ deployment.yaml changed → auto-sync to cluster
+       ├─ Self-Healing: cluster drift from Git state → auto-revert
+       └─ Rollback: git revert → ArgoCD deploys previous version
+```
+
+### Why ArgoCD over GitHub Actions CD
+
+Instead of a **Push-based** approach (Actions runs `kubectl apply` directly), ArgoCD was chosen for the following reasons:
+
+- **Security**: Push-based CD requires storing cluster credentials in GitHub Secrets. ArgoCD runs inside the cluster and pulls from Git — no credentials exposed externally
+- **GitOps**: `k8s/` directory is the Single Source of Truth. Declared state always matches actual cluster state
+- **Self-Healing**: If someone modifies the cluster directly, ArgoCD automatically reverts to the Git state — operational stability guaranteed
+- **Rollback**: A single `git revert` redeploys the previous version. No separate rollback command needed
+
+### ArgoCD Setup (Minikube)
+
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Access dashboard
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+```
+
+> ArgoCD Application manifest (`k8s/argocd-app.yaml`) — implementation in progress.
 
 ---
 
