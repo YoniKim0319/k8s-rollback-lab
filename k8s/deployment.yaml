@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: rollback-lab
-          image: rollback-lab:latest
+          image: rollback-lab:v2
           imagePullPolicy: Never
           ports:
             - containerPort: 8000
