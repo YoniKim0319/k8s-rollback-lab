@@ -42,29 +42,55 @@ Simulate a simplified SDV/ADAS-style deployment reliability workflow, focused on
 
 ---
 
-## Planned Scenario
+## Experiment Results (Minikube)
 
-### 1. Deploy Stable Version (v1)
-- Application running, health checks passing
-- Metrics and logs collected via Prometheus + Loki
+> Conducted on local Minikube cluster (Docker driver, Windows 10)
 
-### 2. Introduce a Faulty Release (v2)
-Examples:
-- Intentionally broken `/ready` endpoint (simulating a failed integration)
-- Slow response / memory pressure
-- Crash-loop via bad configuration
+### Scenario: Faulty v2 release → automatic stall → manual rollback
 
-### 3. Observe the Failure
-Using: logs, restart count, latency, pod health, error rate  
-→ Identify: what failed, impact scope, whether rollback is required
-
-### 4. Rollback & Recover
+**Step 1 — Deploy v1 (stable)**
 ```bash
-kubectl rollout undo deployment/rollback-lab
-kubectl rollout history deployment/rollback-lab
+kubectl apply -f k8s/deployment.yaml   # APP_VERSION=1.0.0, FORCE_NOT_READY=false
+kubectl apply -f k8s/service.yaml
+```
+→ Both Pods reached `1/1 Running` in **~18 seconds**  
+→ `/info` confirmed: `version: 1.0.0`, `force_not_ready: false`
+
+**Step 2 — Deploy v2 (faulty)**
+```bash
+# image: rollback-lab:v2, FORCE_NOT_READY=true
+kubectl apply -f k8s/deployment.yaml
+```
+→ v2 Pods started (`0/1 Running`) but never became Ready  
+→ readinessProbe failed every 10s (failureThreshold: 3)  
+→ RollingUpdate **stalled** — last v1 Pod preserved automatically  
+→ `kubectl rollout status` output:
+```
+Waiting for deployment "rollback-lab" rollout to finish: 1 old replicas are pending termination...
 ```
 
-Focus: rollback speed, service recovery time, operational impact minimization
+**Step 3 — Rollback**
+```bash
+kubectl rollout undo deployment/rollback-lab
+```
+→ v1 Pod restored in **~16 seconds**  
+→ `/info` confirmed: `version: 1.0.0`, `force_not_ready: false`
+
+### Timing Summary
+
+| Event | Time |
+|-------|------|
+| v1 deploy → fully ready | ~18s |
+| v2 readinessProbe failure detection | ~35s (initialDelay 5s + period 10s × 3) |
+| RollingUpdate stall (v1 preserved) | automatic, no intervention needed |
+| `rollout undo` → v1 fully recovered | ~16s |
+
+### Key Observation
+
+`/health` (livenessProbe) returned 200 throughout the entire v2 failure period.  
+`/ready` (readinessProbe) returned 503, which was the only signal Kubernetes needed to block traffic and halt the rollout.
+
+This confirms the readiness/liveness separation is not just theoretical — **it was the actual mechanism that prevented the faulty release from reaching users.**
 
 ---
 
@@ -171,6 +197,6 @@ kubectl apply -f k8s/service.yaml --dry-run=client
 - [x] CI pipeline (pytest + docker build + dry-run)
 - [x] Prometheus metrics (`/metrics` endpoint)
 - [x] Grafana + Prometheus stack via docker-compose
-- [ ] Faulty release simulation (v2 with broken readiness)
-- [ ] Rollback timing measurement
-- [ ] Minikube-based full end-to-end run
+- [x] Faulty release simulation (v2 with broken readiness)
+- [x] Rollback timing measurement
+- [x] Minikube-based full end-to-end run
