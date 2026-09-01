@@ -59,6 +59,8 @@ jobs:
 
       - name: kind 클러스터 생성
         uses: helm/kind-action@v1
+        with:
+          cluster_name: kind
 
       - name: Docker 이미지 빌드 (kind용 태그)
         run: docker build -t rollback-lab:latest .
