@@ -21,17 +21,17 @@ spec:
     spec:
       containers:
         - name: rollback-lab
-          image: rollback-lab:v2
+          image: rollback-lab:latest
           imagePullPolicy: Never
           ports:
             - containerPort: 8000
           env:
             - name: APP_VERSION
-              value: "2.0.0"
+              value: "1.0.0"
             - name: APP_ENV
               value: "production"
             - name: FORCE_NOT_READY
-              value: "true"
+              value: "false"
             - name: SLOW_READY_MS
               value: "0"
           readinessProbe:
