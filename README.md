@@ -107,7 +107,7 @@ k8s-rollback-lab/
 │   └── service.yaml
 ├── .github/
 │   └── workflows/
-│       └── ci.yml         # pytest → docker build → kubectl dry-run
+│       └── ci.yml         # pytest → docker build + kubeconform → automated kind-cluster rollback test (CT)
 └── Dockerfile
 ```
 
@@ -152,7 +152,8 @@ Conceptual parallel to automotive/ADAS:
 | Layer | Tool | Responsibility |
 |-------|------|----------------|
 | CI | GitHub Actions | Code quality gate (test, build, manifest validation) |
-| CD | ArgoCD (GitOps) | Automated cluster deployment & Self-Healing |
+| CT | GitHub Actions | Automated deploy/rollback regression test (ephemeral kind cluster) |
+| CD | ArgoCD (GitOps) — design only, not yet deployed | Automated cluster deployment & Self-Healing |
 
 ### CI (GitHub Actions)
 
@@ -161,7 +162,25 @@ push / PR
   └─ pytest                    ← blocks everything downstream on failure
        ├─ Docker build          (local only, no push)
        └─ k8s manifest validate (kubeconform, no cluster needed)
+            └─ CT: automated deploy/rollback verification (see below)
 ```
+
+### CT (GitHub Actions)
+
+Once `pytest`, `Docker build`, and `k8s manifest validate` all pass, a fourth job spins up an ephemeral [`kind`](https://kind.sigs.k8s.io/) cluster inside the runner and re-runs the exact Minikube scenario above as an automated regression test:
+
+```
+1. Create a kind cluster (discarded at the end of the job)
+2. Build the image and load it into kind (no registry push needed)
+3. Apply k8s/deployment.yaml (v1) → confirm /ready returns 200
+4. Inject the fault via `kubectl set env FORCE_NOT_READY=true` (the committed
+   manifest always stays in its stable v1 state — faults are injected at
+   runtime, not baked into the repo)
+5. Assert the rollout stalls (a rollout that *succeeds* here is the failure case)
+6. `kubectl rollout undo` → confirm the deployment recovers and /ready returns 200 again
+```
+
+This turns the manual Minikube walkthrough above into a repeatable check that runs on every pull request, rather than a one-off manual verification.
 
 ### CD (ArgoCD)
 
@@ -239,3 +258,4 @@ kubectl apply -f k8s/service.yaml --dry-run=client
 - [x] Faulty release simulation (v2 with broken readiness)
 - [x] Rollback timing measurement
 - [x] Minikube-based full end-to-end run
+- [x] Automated CT job (GitHub Actions + kind) verifying the deploy/rollback scenario on every PR
